@@ -77,7 +77,7 @@ function App() {
 
   async function signIn() {
     setErrorMessage('');
-    if (!authEmail.trim() || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(authEmail.trim())) { setErrorMessage('Enter a valid email address to receive your secure sign-in link.'); return; }
+    if (!authEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail.trim())) { setErrorMessage('Enter a valid email address to receive your secure sign-in link.'); return; }
     try { await auth.signInWithRedirect(authEmail.trim()); setNotice('Check your email for the secure SmartStock sign-in link.'); }
     catch (err) { setErrorMessage(messageOf(err, 'Sign-in link could not be sent. Please try again.')); }
   }
