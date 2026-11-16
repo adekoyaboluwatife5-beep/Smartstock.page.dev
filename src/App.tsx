@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { auth, api } from '@appdeploy/client';
+import { auth, api } from './lib/appdeploy-compat';
 import {
   Activity, AlertTriangle, Boxes, Building2, Check, ChevronDown, CircleDollarSign,
   ClipboardList, CreditCard, LayoutDashboard, LogOut, Menu, Package, Plus,
@@ -24,6 +24,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [notice, setNotice] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
   const [query, setQuery] = useState('');
   const [mobileNav, setMobileNav] = useState(false);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
@@ -76,8 +77,9 @@ function App() {
 
   async function signIn() {
     setErrorMessage('');
-    try { await auth.signInWithRedirect(); }
-    catch (err) { setErrorMessage(messageOf(err, 'Sign-in could not start. Check browser storage and try again.')); }
+    if (!authEmail.trim() || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(authEmail.trim())) { setErrorMessage('Enter a valid email address to receive your secure sign-in link.'); return; }
+    try { await auth.signInWithRedirect(authEmail.trim()); setNotice('Check your email for the secure SmartStock sign-in link.'); }
+    catch (err) { setErrorMessage(messageOf(err, 'Sign-in link could not be sent. Please try again.')); }
   }
   async function signOut() {
     await auth.signOut();
@@ -135,7 +137,7 @@ function App() {
   const filtered = useMemo(() => products.filter(p => (p.name + p.sku + p.category).toLowerCase().includes(query.toLowerCase())), [products, query]);
 
   if (!authReady) return <div className="center-screen"><div className="brand-mark"><Boxes size={24}/></div><p>Securing your SmartStock session…</p></div>;
-  if (!user) return <div className="auth-screen"><div className="auth-panel"><div className="brand-lockup"><div className="brand-mark"><Boxes size={24}/></div><div><b>SmartStock</b><span>BUSINESS MANAGER</span></div></div><div className="auth-art"><div className="auth-orbit orbit-one"/><div className="auth-orbit orbit-two"/><div className="auth-icon"><Store size={38}/></div></div><p className="eyebrow">INVENTORY THAT WORKS FOR YOU</p><h1>Run your store with confidence.</h1><p className="muted-copy">Manage products, monitor stock and record sales for your supermarket or provision store — securely from anywhere.</p><button className="primary full" onClick={signIn}>Sign in or create account <TrendingUp size={17}/></button><p className="fine-print">Secure sign-in powered by AppDeploy. Your business data is private to your account.</p>{errorMessage && <div className="alert error">{errorMessage}</div>}</div></div>;
+  if (!user) return <div className="auth-screen"><div className="auth-panel"><div className="brand-lockup"><div className="brand-mark"><Boxes size={24}/></div><div><b>SmartStock</b><span>BUSINESS MANAGER</span></div></div><div className="auth-art"><div className="auth-orbit orbit-one"/><div className="auth-orbit orbit-two"/><div className="auth-icon"><Store size={38}/></div></div><p className="eyebrow">INVENTORY THAT WORKS FOR YOU</p><h1>Run your store with confidence.</h1><p className="muted-copy">Manage products, monitor stock and record sales for your supermarket or provision store — securely from anywhere.</p><label className="auth-email-label">Email address<input type="email" required autoComplete="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com"/></label><button className="primary full" onClick={signIn}>Email me a secure sign-in link <TrendingUp size={17}/></button><p className="fine-print">Secure passwordless sign-in powered by Supabase. We will email you a one-time sign-in link.</p>{errorMessage && <div className="alert error">{errorMessage}</div>}</div></div>;
 
   if (!business && showBusinessForm) return <div className="setup-screen"><div className="setup-card"><div className="brand-lockup"><div className="brand-mark"><Boxes size={24}/></div><b>SmartStock</b></div><span className="eyebrow">BUSINESS SETUP</span><h1>Set up your store</h1><p className="muted-copy">Create your business workspace. You can invite staff and manage subscriptions as your store grows.</p><form onSubmit={createBusiness}><label>Business name<input required value={businessForm.name} onChange={e => setBusinessForm({...businessForm, name:e.target.value})} placeholder="e.g. Ade Stores"/></label><label>Business type<select value={businessForm.type} onChange={e => setBusinessForm({...businessForm, type:e.target.value})}><option>Supermarket</option><option>Provision store</option><option>Mini mart</option><option>Retail shop</option></select></label><button className="primary full" disabled={loading}>{loading ? 'Creating workspace…' : 'Create business account'}</button></form>{errorMessage && <div className="alert error">{errorMessage}</div>}</div></div>;
 
