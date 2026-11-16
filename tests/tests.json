@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Sign in and create a business workspace",
+    "sanity": true,
+    "viewport": "desktop",
+    "covers": ["secure authentication", "business account creation", "owner membership", "cloud persistence"],
+    "description": "Verifies a signed-in user can create a named supermarket workspace and it remains available after reload.",
+    "steps": ["Open SmartStock while signed out", "Sign in using the AppDeploy login screen", "Enter business name QA Supermarket and choose Supermarket", "Create the business account", "Refresh the page"],
+    "expected": "The signed-in owner returns to the QA Supermarket workspace without creating a duplicate business."
+  },
+  {
+    "name": "Save and retrieve products in the business cloud inventory",
+    "viewport": "desktop",
+    "covers": ["business-scoped product creation", "cloud database persistence", "product catalogue search", "low stock threshold"],
+    "description": "Verifies products are stored in the selected business workspace and remain available after a new session load.",
+    "steps": ["Sign in to the QA Supermarket business", "Open Products and add QA Rice with SKU QA-001, stock 12, cost 800 and selling price 1000", "Refresh the page", "Search for QA Rice"],
+    "expected": "QA Rice appears with the saved stock, SKU and prices after refresh."
+  },
+  {
+    "name": "Record a sale and reduce stock",
+    "viewport": "desktop",
+    "covers": ["sales creation", "stock deduction", "sales history", "business membership authorization"],
+    "description": "Verifies an authorized business member can record a sale and see the persisted inventory quantity and sale history.",
+    "setup": ["Create product QA Beans with stock 10, cost 500 and selling price 700 in the QA Supermarket workspace"],
+    "steps": ["Open Sales & POS", "Record a sale of 2 QA Beans paid by Cash", "Open Inventory", "Refresh the page"],
+    "expected": "A sale for 2 QA Beans appears in history and the product stock is 8 after refresh."
+  },
+  {
+    "name": "Reject invalid product data and keep another business private",
+    "viewport": "mobile",
+    "covers": ["server-side validation", "unauthorized cross-business data denial", "mobile responsive navigation"],
+    "description": "Verifies invalid product values are rejected by the backend and a user cannot read another business by changing its business ID.",
+    "steps": ["Open Products on a mobile viewport", "Attempt to save a product with a zero selling price", "Verify the validation error", "Attempt to open business data using a business ID not owned or shared with this account"],
+    "expected": "The invalid product is not saved and the unrelated business data request is denied."
+  },
+  {
+    "name": "Show approved subscription prices without enabling checkout",
+    "viewport": "mobile",
+    "covers": ["Starter Business and Premium monthly pricing", "annual subscription pricing", "payment-not-yet-enabled disclosure"],
+    "description": "Verifies all approved monthly and annual prices are visible and the subscription page clearly states that payment collection is not active.",
+    "steps": ["Sign in and open Subscription", "Review the Starter, Business and Premium monthly prices", "Review the annual prices", "Check the payment status notice"],
+    "expected": "The page shows Starter ₦5,000 monthly and ₦50,000 annually, Business ₦10,000 and ₦100,000, Premium ₦20,000 and ₦200,000, and states that checkout is not active."
+  }
+]
