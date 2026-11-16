@@ -53,11 +53,13 @@ export const api = {
     if(path==='/api/businesses') {
       const {data:ud,error:ue}=await db.auth.getUser(); if(ue) throw ue;
       if(!ud.user) throw new Error('Please sign in again.');
-      const {data:b,error}=await db.from('businesses').insert({name:String(body.name||'').trim(),type:body.type||'Supermarket',owner_id:ud.user.id}).select().single();
+      const {data:b,error}=await db.from('businesses').insert({name:String(body.name||'').trim(),type:body.type||'Supermarket',owner_id:ud.user.id}).select('id').single();
       if(error) throw error;
       const {error:me}=await db.from('memberships').insert({business_id:b.id,user_id:ud.user.id,role:'owner'});
-      if(me) { await db.from('businesses').delete().eq('id',b.id); throw me; }
-      return {data:{business:mapBusiness(b,'owner')}};
+      if(me) throw me;
+      const {data:created,error:se}=await db.from('businesses').select('id,name,type,currency,plan,subscription_status').eq('id',b.id).single();
+      if(se) throw se;
+      return {data:{business:mapBusiness(created,'owner')}};
     }
     if(path==='/api/products') {
       const {data,error}=await db.from('products').insert({business_id:body.businessId,name:body.name,sku:body.sku||'',category:body.category||'Other',stock:body.stock,price:body.price,cost:body.cost||0,threshold:body.threshold??5}).select().single();
