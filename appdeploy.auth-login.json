@@ -1,0 +1,14 @@
+{
+  "methods": ["google", "apple", "x", "email"],
+  "headline": "Sign in to SmartStock",
+  "subtitle": "Securely manage your store and business inventory.",
+  "style": {
+    "mode": "light",
+    "accentColor": "#176d4d",
+    "backgroundColor": "#f5f8f6",
+    "panelColor": "#ffffff",
+    "textColor": "#173b2d",
+    "fontFamily": "DM Sans, system-ui, sans-serif",
+    "borderRadius": 14
+  }
+}
