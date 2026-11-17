@@ -39,6 +39,7 @@ function App() {
   const [businessForm, setBusinessForm] = useState({ name: '', type: 'Supermarket' });
   const [productForm, setProductForm] = useState({ name: '', sku: '', category: 'Groceries', stock: '0', price: '', cost: '', threshold: '5' });
   const [saleForm, setSaleForm] = useState({ productId: '', quantity: '1', payment: 'Cash' });
+  const [barcodeQuery, setBarcodeQuery] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -163,6 +164,27 @@ function App() {
     finally { setLoading(false); }
   }
 
+  function findBarcodeProduct(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const code = barcodeQuery.trim().toLowerCase();
+    if (!code) return;
+    const match = products.find(p => p.sku.trim().toLowerCase() === code);
+    if (match) {
+      if (match.stock < 1) {
+        setErrorMessage(match.name + ' is out of stock.');
+        return;
+      }
+      setSaleForm(current => ({ ...current, productId: match.id }));
+      setErrorMessage('');
+      setNotice(match.name + ' selected. Enter the quantity and complete the sale.');
+      setBarcodeQuery('');
+    } else {
+      setErrorMessage('No product found for barcode / SKU "' + barcodeQuery.trim() + '". Check the code or choose a product below.');
+    }
+  }
+
+  const selectedSaleProduct = products.find(p => p.id === saleForm.productId);
   const lowStock = products.filter(p => p.stock <= p.threshold);
   const stockValue = products.reduce((sum, p) => sum + p.stock * p.cost, 0);
   const salesTotal = sales.reduce((sum, s) => sum + s.total, 0);
@@ -199,7 +221,7 @@ function App() {
       </div>
     </main>
     {showProductForm && <Modal title="Add a product" onClose={()=>setShowProductForm(false)}><form onSubmit={addProduct} className="form-grid"><label className="wide">Product name<input required value={productForm.name} onChange={e=>setProductForm({...productForm,name:e.target.value})} placeholder="e.g. Golden Penny Spaghetti"/></label><label>SKU / barcode<input value={productForm.sku} onChange={e=>setProductForm({...productForm,sku:e.target.value})} placeholder="Optional"/></label><label>Category<select value={productForm.category} onChange={e=>setProductForm({...productForm,category:e.target.value})}>{categories.map(c=><option key={c}>{c}</option>)}</select></label><label>Opening stock<input required type="number" min="0" value={productForm.stock} onChange={e=>setProductForm({...productForm,stock:e.target.value})}/></label><label>Minimum stock<input type="number" min="0" value={productForm.threshold} onChange={e=>setProductForm({...productForm,threshold:e.target.value})}/></label><label>Cost price (₦)<input type="number" min="0" value={productForm.cost} onChange={e=>setProductForm({...productForm,cost:e.target.value})}/></label><label>Selling price (₦)<input required type="number" min="1" value={productForm.price} onChange={e=>setProductForm({...productForm,price:e.target.value})}/></label><button className="primary wide" disabled={loading}>{loading?'Saving…':'Save product to cloud'}</button></form></Modal>}
-    {showSaleForm && <Modal title="Record a sale" onClose={()=>setShowSaleForm(false)}><form onSubmit={recordSale} className="form-grid"><label className="wide">Product<select required value={saleForm.productId} onChange={e=>setSaleForm({...saleForm,productId:e.target.value})}><option value="">Select product</option>{products.filter(p=>p.stock>0).map(p=><option key={p.id} value={p.id}>{p.name} · {p.stock} available · {money(p.price)}</option>)}</select></label><label>Quantity<input required type="number" min="1" value={saleForm.quantity} onChange={e=>setSaleForm({...saleForm,quantity:e.target.value})}/></label><label>Payment method<select value={saleForm.payment} onChange={e=>setSaleForm({...saleForm,payment:e.target.value})}><option>Cash</option><option>POS</option><option>Transfer</option></select></label><button className="primary wide" disabled={loading || products.every(p=>p.stock===0)}>{loading?'Saving…':'Complete sale'}</button></form></Modal>}
+    {showSaleForm && <Modal title="Record a sale" onClose={()=>setShowSaleForm(false)}><form onSubmit={recordSale} className="form-grid"><label className="wide">Scan barcode or enter SKU<input autoFocus value={barcodeQuery} onChange={e=>setBarcodeQuery(e.target.value)} onKeyDown={findBarcodeProduct} placeholder="Scan barcode, then press Enter"/></label><label className="wide">Product<select required value={saleForm.productId} onChange={e=>setSaleForm({...saleForm,productId:e.target.value})}><option value="">Select product</option>{products.filter(p=>p.stock>0).map(p=><option key={p.id} value={p.id}>{p.name} · {p.stock} available · {money(p.price)}</option>)}</select></label>{selectedSaleProduct && <div className="wide pos-selection"><b>{selectedSaleProduct.name}</b><span>{selectedSaleProduct.stock} in stock · {money(selectedSaleProduct.price)} each · Subtotal {money(selectedSaleProduct.price * Number(saleForm.quantity || 0))}</span></div>}<label>Quantity<input required type="number" min="1" value={saleForm.quantity} onChange={e=>setSaleForm({...saleForm,quantity:e.target.value})}/></label><label>Payment method<select value={saleForm.payment} onChange={e=>setSaleForm({...saleForm,payment:e.target.value})}><option>Cash</option><option>POS</option><option>Transfer</option></select></label><button className="primary wide" disabled={loading || products.every(p=>p.stock===0)}>{loading?'Saving…':'Complete sale'}</button></form></Modal>}
   </div>;
 }
 
