@@ -173,3 +173,61 @@ td small { display:block; font-size:9px; color:#a0aaa4; margin-top:4px; }
   .settings-list b { text-align:left; }
   .metric-grid.compact { grid-template-columns:1fr 1fr; }
 }
+
+
+/* Modern sign-in experience */
+.auth-screen {
+  min-height: 100vh;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 470px);
+  gap: clamp(36px, 7vw, 110px);
+  place-items: center;
+  padding: clamp(28px, 6vw, 84px) clamp(24px, 9vw, 140px);
+  background:
+    radial-gradient(circle at 12% 12%, rgba(57, 173, 119, .25), transparent 32%),
+    radial-gradient(circle at 88% 88%, rgba(55, 143, 112, .18), transparent 34%),
+    linear-gradient(135deg, #092d25 0%, #104c3a 55%, #123d35 100%);
+}
+.auth-screen::before {
+  content: "SMARTER STOCK CONTROL\\A\\AOne clear view of your business.\\A\\ATrack products, stay ahead of low stock and understand your sales — wherever you work.";
+  display: block;
+  max-width: 620px;
+  color: #fff;
+  white-space: pre-line;
+  font: 500 clamp(18px, 2vw, 24px)/1.65 'DM Sans', sans-serif;
+  letter-spacing: -.35px;
+  padding: 0 0 0 clamp(0px, 2vw, 28px);
+}
+.auth-panel {
+  width: min(100%, 470px);
+  padding: clamp(28px, 4vw, 44px);
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 26px;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .22);
+}
+.auth-panel h1 { line-height: 1.15; }
+.auth-art {
+  height: 138px;
+  background: linear-gradient(135deg, #e6f6ec, #f5fbf7);
+}
+.auth-email-label input {
+  min-height: 48px;
+  font-size: 14px;
+  transition: border-color .18s, box-shadow .18s;
+}
+.auth-email-label input:focus {
+  border-color: #16845a;
+  box-shadow: 0 0 0 4px rgba(22,132,90,.12);
+}
+.auth-panel .primary {
+  min-height: 49px;
+  font-size: 12px;
+}
+@media(max-width: 800px) {
+  .auth-screen {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 24px 16px;
+  }
+  .auth-screen::before { display: none; }
+  .auth-panel { width: min(100%, 470px); }
+}
