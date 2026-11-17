@@ -135,6 +135,9 @@ td small { display:block; font-size:9px; color:#a0aaa4; margin-top:4px; }
 .orbit-two { width:240px; height:240px; border-color:#c8e0d0; }
 .auth-panel h1 { font-size:29px; margin:8px 0; }
 .auth-panel .muted-copy { margin:9px 0 22px; }
+.auth-email-label { display:grid; gap:7px; margin:0 0 12px; color:#53665b; font-size:11px; font-weight:700; }
+.auth-email-label input { width:100%; border:1px solid var(--line); border-radius:10px; padding:12px; outline:none; color:var(--ink); background:#fff; }
+.auth-email-label input:focus { border-color:#5c9a78; box-shadow:0 0 0 3px #176d4d14; }
 .fine-print { text-align:center; font-size:9px; color:#9aa69f; line-height:1.6; margin:13px 0 0; }
 .setup-card h1 { margin-top:10px; }
 .setup-card .muted-copy { margin-bottom:22px; }
@@ -170,3 +173,115 @@ td small { display:block; font-size:9px; color:#a0aaa4; margin-top:4px; }
   .settings-list b { text-align:left; }
   .metric-grid.compact { grid-template-columns:1fr 1fr; }
 }
+
+
+/* Modern sign-in experience */
+.auth-screen {
+  min-height: 100vh;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 470px);
+  gap: clamp(36px, 7vw, 110px);
+  place-items: center;
+  padding: clamp(28px, 6vw, 84px) clamp(24px, 9vw, 140px);
+  background:
+    radial-gradient(circle at 12% 12%, rgba(57, 173, 119, .25), transparent 32%),
+    radial-gradient(circle at 88% 88%, rgba(55, 143, 112, .18), transparent 34%),
+    linear-gradient(135deg, #092d25 0%, #104c3a 55%, #123d35 100%);
+}
+.auth-screen::before {
+  content: "SMARTER STOCK CONTROL\A\AOne clear view of your business.\A\ATrack products, stay ahead of low stock and understand your sales — wherever you work.";
+  display: block;
+  max-width: 620px;
+  color: #fff;
+  white-space: pre-line;
+  font: 500 clamp(18px, 2vw, 24px)/1.65 'DM Sans', sans-serif;
+  letter-spacing: -.35px;
+  padding: 0 0 0 clamp(0px, 2vw, 28px);
+}
+.auth-panel {
+  width: min(100%, 470px);
+  padding: clamp(28px, 4vw, 44px);
+  border: 1px solid rgba(255,255,255,.7);
+  border-radius: 26px;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .22);
+}
+.auth-panel h1 { line-height: 1.15; }
+.auth-art {
+  height: 138px;
+  background: linear-gradient(135deg, #e6f6ec, #f5fbf7);
+}
+.auth-email-label input {
+  min-height: 48px;
+  font-size: 14px;
+  transition: border-color .18s, box-shadow .18s;
+}
+.auth-email-label input:focus {
+  border-color: #16845a;
+  box-shadow: 0 0 0 4px rgba(22,132,90,.12);
+}
+.auth-panel .primary {
+  min-height: 49px;
+  font-size: 12px;
+}
+@media(max-width: 800px) {
+  .auth-screen {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 24px 16px;
+  }
+  .auth-screen::before { display: none; }
+  .auth-panel { width: min(100%, 470px); }
+}
+
+
+/* Standard account registration and sign-in */
+.auth-screen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  padding: 28px 16px;
+  background: #f4f7f5;
+}
+.auth-screen::before { display: none; }
+.auth-panel.auth-standard {
+  width: min(100%, 480px);
+  padding: 34px;
+  border: 1px solid #e4ece7;
+  border-radius: 16px;
+  box-shadow: 0 12px 38px rgba(24,66,46,.08);
+}
+.auth-standard .brand-lockup { margin-bottom: 28px; }
+.auth-standard h1 { font-size: 27px; margin: 9px 0 7px; }
+.auth-standard .muted-copy { margin: 0 0 22px; }
+.auth-form { display: grid; gap: 13px; }
+.auth-name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.auth-standard .auth-email-label { margin: 0; gap: 7px; }
+.auth-standard .auth-email-label input,
+.auth-standard .auth-email-label select {
+  width: 100%; min-height: 46px; padding: 11px 12px;
+  border: 1px solid #dfe8e2; border-radius: 9px;
+  background: #fff; color: #294337; font-size: 13px; outline: none;
+}
+.auth-standard .auth-email-label input:focus,
+.auth-standard .auth-email-label select:focus {
+  border-color: #5c9a78; box-shadow: 0 0 0 3px #176d4d14;
+}
+.auth-form .primary { min-height: 47px; margin-top: 4px; }
+.auth-switch { margin: 19px 0 0; text-align: center; font-size: 11px; color: #75847c; }
+.auth-switch button { border: 0; padding: 0 3px; background: transparent; color: #147a52; font-weight: 800; }
+@media(max-width:520px) {
+  .auth-panel.auth-standard { padding: 25px 20px; }
+  .auth-name-row { grid-template-columns: 1fr; }
+}
+
+
+/* Barcode-ready point-of-sale selection */
+.pos-selection {
+  display: grid;
+  gap: 5px;
+  padding: 12px 14px;
+  border: 1px solid #dceee3;
+  border-radius: 10px;
+  background: #f3faf5;
+}
+.pos-selection b { color: #1b5e40; font-size: 12px; }
+.pos-selection span { color: #708278; font-size: 10px; line-height: 1.5; }

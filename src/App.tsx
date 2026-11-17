@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { auth, api } from '@appdeploy/client';
+import { auth, api } from './lib/appdeploy-compat';
 import {
-  Activity, AlertTriangle, Boxes, Building2, Check, ChevronDown, CircleDollarSign,
+  Activity, AlertTriangle, PackageCheck, Building2, Check, ChevronDown, CircleDollarSign,
   ClipboardList, CreditCard, LayoutDashboard, LogOut, Menu, Package, Plus,
   Search, Settings, ShoppingCart, Store, TrendingUp, Users, X
 } from 'lucide-react';
@@ -24,6 +24,13 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [notice, setNotice] = useState('');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [country, setCountry] = useState('Nigeria');
+  const [authPassword, setAuthPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [query, setQuery] = useState('');
   const [mobileNav, setMobileNav] = useState(false);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
@@ -32,6 +39,7 @@ function App() {
   const [businessForm, setBusinessForm] = useState({ name: '', type: 'Supermarket' });
   const [productForm, setProductForm] = useState({ name: '', sku: '', category: 'Groceries', stock: '0', price: '', cost: '', threshold: '5' });
   const [saleForm, setSaleForm] = useState({ productId: '', quantity: '1', payment: 'Cash' });
+  const [barcodeQuery, setBarcodeQuery] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -74,10 +82,37 @@ function App() {
     finally { setLoading(false); }
   }
 
-  async function signIn() {
+  async function submitAuth(e: React.FormEvent) {
+    e.preventDefault();
     setErrorMessage('');
-    try { await auth.signInWithRedirect(); }
-    catch (err) { setErrorMessage(messageOf(err, 'Sign-in could not start. Check browser storage and try again.')); }
+    setNotice('');
+    const email = authEmail.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErrorMessage('Enter a valid email address.'); return; }
+    if (authPassword.length < 8) { setErrorMessage('Your password must be at least 8 characters.'); return; }
+    if (authMode === 'signup') {
+      if (!firstName.trim() || !lastName.trim()) { setErrorMessage('Enter your first and last name.'); return; }
+      if (authPassword !== confirmPassword) { setErrorMessage('Your passwords do not match.'); return; }
+    }
+    setLoading(true);
+    try {
+      if (authMode === 'signup') {
+        const result = await auth.signUp(email, authPassword, { first_name: firstName.trim(), last_name: lastName.trim(), full_name: firstName.trim() + ' ' + lastName.trim(), country });
+        if (result.session) {
+          const restored = await auth.getUser();
+          setUser(restored);
+          if (restored) await loadWorkspace();
+        } else {
+          setNotice('Your account has been created. Check your email to confirm your address, then sign in.');
+        }
+      } else {
+        await auth.signInWithPassword(email, authPassword);
+        const restored = await auth.getUser();
+        setUser(restored);
+        if (restored) await loadWorkspace();
+      }
+    } catch (err) {
+      setErrorMessage(messageOf(err, authMode === 'signup' ? 'Your account could not be created. Please try again.' : 'Sign-in failed. Check your email and password.'));
+    } finally { setLoading(false); }
   }
   async function signOut() {
     await auth.signOut();
@@ -129,15 +164,36 @@ function App() {
     finally { setLoading(false); }
   }
 
+  function findBarcodeProduct(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const code = barcodeQuery.trim().toLowerCase();
+    if (!code) return;
+    const match = products.find(p => p.sku.trim().toLowerCase() === code);
+    if (match) {
+      if (match.stock < 1) {
+        setErrorMessage(match.name + ' is out of stock.');
+        return;
+      }
+      setSaleForm(current => ({ ...current, productId: match.id }));
+      setErrorMessage('');
+      setNotice(match.name + ' selected. Enter the quantity and complete the sale.');
+      setBarcodeQuery('');
+    } else {
+      setErrorMessage('No product found for barcode / SKU "' + barcodeQuery.trim() + '". Check the code or choose a product below.');
+    }
+  }
+
+  const selectedSaleProduct = products.find(p => p.id === saleForm.productId);
   const lowStock = products.filter(p => p.stock <= p.threshold);
   const stockValue = products.reduce((sum, p) => sum + p.stock * p.cost, 0);
   const salesTotal = sales.reduce((sum, s) => sum + s.total, 0);
   const filtered = useMemo(() => products.filter(p => (p.name + p.sku + p.category).toLowerCase().includes(query.toLowerCase())), [products, query]);
 
-  if (!authReady) return <div className="center-screen"><div className="brand-mark"><Boxes size={24}/></div><p>Securing your SmartStock session…</p></div>;
-  if (!user) return <div className="auth-screen"><div className="auth-panel"><div className="brand-lockup"><div className="brand-mark"><Boxes size={24}/></div><div><b>SmartStock</b><span>BUSINESS MANAGER</span></div></div><div className="auth-art"><div className="auth-orbit orbit-one"/><div className="auth-orbit orbit-two"/><div className="auth-icon"><Store size={38}/></div></div><p className="eyebrow">INVENTORY THAT WORKS FOR YOU</p><h1>Run your store with confidence.</h1><p className="muted-copy">Manage products, monitor stock and record sales for your supermarket or provision store — securely from anywhere.</p><button className="primary full" onClick={signIn}>Sign in or create account <TrendingUp size={17}/></button><p className="fine-print">Secure sign-in powered by AppDeploy. Your business data is private to your account.</p>{errorMessage && <div className="alert error">{errorMessage}</div>}</div></div>;
+  if (!authReady) return <div className="center-screen"><div className="brand-mark"><PackageCheck size={24}/></div><p>Securing your SmartStock session…</p></div>;
+  if (!user) return <div className="auth-screen"><div className="auth-panel auth-standard"><div className="brand-lockup"><div className="brand-mark"><PackageCheck size={24}/></div><div><b>SmartStock</b><span>BUSINESS MANAGER</span></div></div><span className="eyebrow">YOUR BUSINESS, IN CONTROL</span><h1>{authMode === 'signup' ? 'Create your account' : 'Welcome back'}</h1><p className="muted-copy">{authMode === 'signup' ? 'Sign up to manage your products, stock and sales in one place.' : 'Sign in to continue to your SmartStock workspace.'}</p><form className="auth-form" onSubmit={submitAuth}>{authMode === 'signup' && <><div className="auth-name-row"><label className="auth-email-label">First name<input required autoComplete="given-name" value={firstName} onChange={e=>setFirstName(e.target.value)} placeholder="First name"/></label><label className="auth-email-label">Last name<input required autoComplete="family-name" value={lastName} onChange={e=>setLastName(e.target.value)} placeholder="Last name"/></label></div></>}<label className="auth-email-label">Email address<input type="email" required autoComplete="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com"/></label>{authMode === 'signup' && <label className="auth-email-label">Country<select required value={country} onChange={e=>setCountry(e.target.value)}><option>Nigeria</option><option>Canada</option><option>United States</option><option>United Kingdom</option><option>Australia</option><option>Ireland</option><option>Ghana</option><option>South Africa</option><option>Other</option></select></label>}<label className="auth-email-label">Password<input type="password" required minLength={8} autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'} value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder="At least 8 characters"/></label>{authMode === 'signup' && <label className="auth-email-label">Confirm password<input type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="Enter your password again"/></label>}<button className="primary full" type="submit" disabled={loading}>{loading ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'} <TrendingUp size={17}/></button></form><p className="auth-switch">{authMode === 'signup' ? 'Already have an account?' : "Don't have an account?"} <button type="button" onClick={()=>{setAuthMode(authMode === 'signup' ? 'signin' : 'signup');setErrorMessage('');setNotice('');}}> {authMode === 'signup' ? 'Sign in' : 'Create account'}</button></p><p className="fine-print">Your account is protected by secure authentication.</p>{errorMessage && <div className="alert error">{errorMessage}</div>}{notice && <div className="alert success">{notice}</div>}</div></div>;
 
-  if (!business && showBusinessForm) return <div className="setup-screen"><div className="setup-card"><div className="brand-lockup"><div className="brand-mark"><Boxes size={24}/></div><b>SmartStock</b></div><span className="eyebrow">BUSINESS SETUP</span><h1>Set up your store</h1><p className="muted-copy">Create your business workspace. You can invite staff and manage subscriptions as your store grows.</p><form onSubmit={createBusiness}><label>Business name<input required value={businessForm.name} onChange={e => setBusinessForm({...businessForm, name:e.target.value})} placeholder="e.g. Ade Stores"/></label><label>Business type<select value={businessForm.type} onChange={e => setBusinessForm({...businessForm, type:e.target.value})}><option>Supermarket</option><option>Provision store</option><option>Mini mart</option><option>Retail shop</option></select></label><button className="primary full" disabled={loading}>{loading ? 'Creating workspace…' : 'Create business account'}</button></form>{errorMessage && <div className="alert error">{errorMessage}</div>}</div></div>;
+  if (!business && showBusinessForm) return <div className="setup-screen"><div className="setup-card"><div className="brand-lockup"><div className="brand-mark"><PackageCheck size={24}/></div><b>SmartStock</b></div><span className="eyebrow">BUSINESS SETUP</span><h1>Set up your store</h1><p className="muted-copy">Create your business workspace. You can invite staff and manage subscriptions as your store grows.</p><form onSubmit={createBusiness}><label>Business name<input required value={businessForm.name} onChange={e => setBusinessForm({...businessForm, name:e.target.value})} placeholder="e.g. Ade Stores"/></label><label>Business type<select value={businessForm.type} onChange={e => setBusinessForm({...businessForm, type:e.target.value})}><option>Supermarket</option><option>Provision store</option><option>Mini mart</option><option>Retail shop</option></select></label><button className="primary full" disabled={loading}>{loading ? 'Creating workspace…' : 'Create business account'}</button></form>{errorMessage && <div className="alert error">{errorMessage}</div>}</div></div>;
 
   return <div className="app-shell">
     <aside className={'sidebar ' + (mobileNav ? 'sidebar-open' : '')}>
@@ -165,7 +221,7 @@ function App() {
       </div>
     </main>
     {showProductForm && <Modal title="Add a product" onClose={()=>setShowProductForm(false)}><form onSubmit={addProduct} className="form-grid"><label className="wide">Product name<input required value={productForm.name} onChange={e=>setProductForm({...productForm,name:e.target.value})} placeholder="e.g. Golden Penny Spaghetti"/></label><label>SKU / barcode<input value={productForm.sku} onChange={e=>setProductForm({...productForm,sku:e.target.value})} placeholder="Optional"/></label><label>Category<select value={productForm.category} onChange={e=>setProductForm({...productForm,category:e.target.value})}>{categories.map(c=><option key={c}>{c}</option>)}</select></label><label>Opening stock<input required type="number" min="0" value={productForm.stock} onChange={e=>setProductForm({...productForm,stock:e.target.value})}/></label><label>Minimum stock<input type="number" min="0" value={productForm.threshold} onChange={e=>setProductForm({...productForm,threshold:e.target.value})}/></label><label>Cost price (₦)<input type="number" min="0" value={productForm.cost} onChange={e=>setProductForm({...productForm,cost:e.target.value})}/></label><label>Selling price (₦)<input required type="number" min="1" value={productForm.price} onChange={e=>setProductForm({...productForm,price:e.target.value})}/></label><button className="primary wide" disabled={loading}>{loading?'Saving…':'Save product to cloud'}</button></form></Modal>}
-    {showSaleForm && <Modal title="Record a sale" onClose={()=>setShowSaleForm(false)}><form onSubmit={recordSale} className="form-grid"><label className="wide">Product<select required value={saleForm.productId} onChange={e=>setSaleForm({...saleForm,productId:e.target.value})}><option value="">Select product</option>{products.filter(p=>p.stock>0).map(p=><option key={p.id} value={p.id}>{p.name} · {p.stock} available · {money(p.price)}</option>)}</select></label><label>Quantity<input required type="number" min="1" value={saleForm.quantity} onChange={e=>setSaleForm({...saleForm,quantity:e.target.value})}/></label><label>Payment method<select value={saleForm.payment} onChange={e=>setSaleForm({...saleForm,payment:e.target.value})}><option>Cash</option><option>POS</option><option>Transfer</option></select></label><button className="primary wide" disabled={loading || products.every(p=>p.stock===0)}>{loading?'Saving…':'Complete sale'}</button></form></Modal>}
+    {showSaleForm && <Modal title="Record a sale" onClose={()=>setShowSaleForm(false)}><form onSubmit={recordSale} className="form-grid"><label className="wide">Scan barcode or enter SKU<input autoFocus value={barcodeQuery} onChange={e=>setBarcodeQuery(e.target.value)} onKeyDown={findBarcodeProduct} placeholder="Scan barcode, then press Enter"/></label><label className="wide">Product<select required value={saleForm.productId} onChange={e=>setSaleForm({...saleForm,productId:e.target.value})}><option value="">Select product</option>{products.filter(p=>p.stock>0).map(p=><option key={p.id} value={p.id}>{p.name} · {p.stock} available · {money(p.price)}</option>)}</select></label>{selectedSaleProduct && <div className="wide pos-selection"><b>{selectedSaleProduct.name}</b><span>{selectedSaleProduct.stock} in stock · {money(selectedSaleProduct.price)} each · Subtotal {money(selectedSaleProduct.price * Number(saleForm.quantity || 0))}</span></div>}<label>Quantity<input required type="number" min="1" value={saleForm.quantity} onChange={e=>setSaleForm({...saleForm,quantity:e.target.value})}/></label><label>Payment method<select value={saleForm.payment} onChange={e=>setSaleForm({...saleForm,payment:e.target.value})}><option>Cash</option><option>POS</option><option>Transfer</option></select></label><button className="primary wide" disabled={loading || products.every(p=>p.stock===0)}>{loading?'Saving…':'Complete sale'}</button></form></Modal>}
   </div>;
 }
 
