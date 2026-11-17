@@ -188,7 +188,7 @@ td small { display:block; font-size:9px; color:#a0aaa4; margin-top:4px; }
     linear-gradient(135deg, #092d25 0%, #104c3a 55%, #123d35 100%);
 }
 .auth-screen::before {
-  content: "SMARTER STOCK CONTROL\\A\\AOne clear view of your business.\\A\\ATrack products, stay ahead of low stock and understand your sales — wherever you work.";
+  content: "SMARTER STOCK CONTROL\A\AOne clear view of your business.\A\ATrack products, stay ahead of low stock and understand your sales — wherever you work.";
   display: block;
   max-width: 620px;
   color: #fff;
