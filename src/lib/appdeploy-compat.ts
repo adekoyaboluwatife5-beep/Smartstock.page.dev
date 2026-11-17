@@ -14,10 +14,15 @@ export const auth = {
     const {data,error}=await client().auth.getUser();
     if(error && !error.message.includes('Auth session missing')) throw error;
     const u=data.user;
-    return u ? {userId:u.id,email:u.email,name:u.user_metadata?.full_name || u.user_metadata?.name} : null;
+    return u ? {userId:u.id,email:u.email,name:u.user_metadata?.full_name || u.user_metadata?.name || [u.user_metadata?.first_name,u.user_metadata?.last_name].filter(Boolean).join(' ')} : null;
   },
-  async signInWithRedirect(email: string) {
-    const {error}=await client().auth.signInWithOtp({email,options:{emailRedirectTo:window.location.origin}});
+  async signUp(email: string, password: string, metadata: Row) {
+    const {data,error}=await client().auth.signUp({email,password,options:{emailRedirectTo:window.location.origin,data:metadata}});
+    if(error) throw error;
+    return data;
+  },
+  async signInWithPassword(email: string, password: string) {
+    const {error}=await client().auth.signInWithPassword({email,password});
     if(error) throw error;
   },
   async signOut() { const {error}=await client().auth.signOut(); if(error) throw error; }
