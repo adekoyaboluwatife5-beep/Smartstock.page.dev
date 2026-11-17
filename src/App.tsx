@@ -25,6 +25,12 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('');
   const [notice, setNotice] = useState('');
   const [authEmail, setAuthEmail] = useState('');
+  const [authMode, setAuthMode] = useState<'signup' | 'signin'>('signup');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [country, setCountry] = useState('Nigeria');
+  const [authPassword, setAuthPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [query, setQuery] = useState('');
   const [mobileNav, setMobileNav] = useState(false);
   const [showBusinessForm, setShowBusinessForm] = useState(false);
@@ -75,11 +81,37 @@ function App() {
     finally { setLoading(false); }
   }
 
-  async function signIn() {
+  async function submitAuth(e: React.FormEvent) {
+    e.preventDefault();
     setErrorMessage('');
-    if (!authEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(authEmail.trim())) { setErrorMessage('Enter a valid email address to receive your secure sign-in link.'); return; }
-    try { await auth.signInWithRedirect(authEmail.trim()); setNotice('Check your email for the secure SmartStock sign-in link.'); }
-    catch (err) { setErrorMessage(messageOf(err, 'Sign-in link could not be sent. Please try again.')); }
+    setNotice('');
+    const email = authEmail.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErrorMessage('Enter a valid email address.'); return; }
+    if (authPassword.length < 8) { setErrorMessage('Your password must be at least 8 characters.'); return; }
+    if (authMode === 'signup') {
+      if (!firstName.trim() || !lastName.trim()) { setErrorMessage('Enter your first and last name.'); return; }
+      if (authPassword !== confirmPassword) { setErrorMessage('Your passwords do not match.'); return; }
+    }
+    setLoading(true);
+    try {
+      if (authMode === 'signup') {
+        const result = await auth.signUp(email, authPassword, { first_name: firstName.trim(), last_name: lastName.trim(), full_name: firstName.trim() + ' ' + lastName.trim(), country });
+        if (result.session) {
+          const restored = await auth.getUser();
+          setUser(restored);
+          if (restored) await loadWorkspace();
+        } else {
+          setNotice('Your account has been created. Check your email to confirm your address, then sign in.');
+        }
+      } else {
+        await auth.signInWithPassword(email, authPassword);
+        const restored = await auth.getUser();
+        setUser(restored);
+        if (restored) await loadWorkspace();
+      }
+    } catch (err) {
+      setErrorMessage(messageOf(err, authMode === 'signup' ? 'Your account could not be created. Please try again.' : 'Sign-in failed. Check your email and password.'));
+    } finally { setLoading(false); }
   }
   async function signOut() {
     await auth.signOut();
@@ -137,7 +169,7 @@ function App() {
   const filtered = useMemo(() => products.filter(p => (p.name + p.sku + p.category).toLowerCase().includes(query.toLowerCase())), [products, query]);
 
   if (!authReady) return <div className="center-screen"><div className="brand-mark"><Boxes size={24}/></div><p>Securing your SmartStock session…</p></div>;
-  if (!user) return <div className="auth-screen"><div className="auth-panel"><div className="brand-lockup"><div className="brand-mark"><Boxes size={24}/></div><div><b>SmartStock</b><span>BUSINESS MANAGER</span></div></div><div className="auth-art"><div className="auth-orbit orbit-one"/><div className="auth-orbit orbit-two"/><div className="auth-icon"><Store size={38}/></div></div><p className="eyebrow">INVENTORY THAT WORKS FOR YOU</p><h1>Run your store with confidence.</h1><p className="muted-copy">Manage products, monitor stock and record sales for your supermarket or provision store — securely from anywhere.</p><label className="auth-email-label">Email address<input type="email" required autoComplete="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com"/></label><button className="primary full" onClick={signIn}>Email me a secure sign-in link <TrendingUp size={17}/></button><p className="fine-print">Secure passwordless sign-in powered by Supabase. We will email you a one-time sign-in link.</p>{errorMessage && <div className="alert error">{errorMessage}</div>}{notice && <div className="alert success">{notice}</div>}</div></div>;
+  if (!user) return <div className="auth-screen"><div className="auth-panel auth-standard"><div className="brand-lockup"><div className="brand-mark"><Boxes size={24}/></div><div><b>SmartStock</b><span>BUSINESS MANAGER</span></div></div><span className="eyebrow">YOUR BUSINESS, IN CONTROL</span><h1>{authMode === 'signup' ? 'Create your account' : 'Welcome back'}</h1><p className="muted-copy">{authMode === 'signup' ? 'Sign up to manage your products, stock and sales in one place.' : 'Sign in to continue to your SmartStock workspace.'}</p><form className="auth-form" onSubmit={submitAuth}>{authMode === 'signup' && <><div className="auth-name-row"><label className="auth-email-label">First name<input required autoComplete="given-name" value={firstName} onChange={e=>setFirstName(e.target.value)} placeholder="First name"/></label><label className="auth-email-label">Last name<input required autoComplete="family-name" value={lastName} onChange={e=>setLastName(e.target.value)} placeholder="Last name"/></label></div></>}<label className="auth-email-label">Email address<input type="email" required autoComplete="email" value={authEmail} onChange={e=>setAuthEmail(e.target.value)} placeholder="you@example.com"/></label>{authMode === 'signup' && <label className="auth-email-label">Country<select required value={country} onChange={e=>setCountry(e.target.value)}><option>Nigeria</option><option>Canada</option><option>United States</option><option>United Kingdom</option><option>Australia</option><option>Ireland</option><option>Ghana</option><option>South Africa</option><option>Other</option></select></label>}<label className="auth-email-label">Password<input type="password" required minLength={8} autoComplete={authMode === 'signup' ? 'new-password' : 'current-password'} value={authPassword} onChange={e=>setAuthPassword(e.target.value)} placeholder="At least 8 characters"/></label>{authMode === 'signup' && <label className="auth-email-label">Confirm password<input type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} placeholder="Enter your password again"/></label>}<button className="primary full" type="submit" disabled={loading}>{loading ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'} <TrendingUp size={17}/></button></form><p className="auth-switch">{authMode === 'signup' ? 'Already have an account?' : "Don't have an account?"} <button type="button" onClick={()=>{setAuthMode(authMode === 'signup' ? 'signin' : 'signup');setErrorMessage('');setNotice('');}}> {authMode === 'signup' ? 'Sign in' : 'Create account'}</button></p><p className="fine-print">Your account is protected by secure authentication.</p>{errorMessage && <div className="alert error">{errorMessage}</div>}{notice && <div className="alert success">{notice}</div>}</div></div>;
 
   if (!business && showBusinessForm) return <div className="setup-screen"><div className="setup-card"><div className="brand-lockup"><div className="brand-mark"><Boxes size={24}/></div><b>SmartStock</b></div><span className="eyebrow">BUSINESS SETUP</span><h1>Set up your store</h1><p className="muted-copy">Create your business workspace. You can invite staff and manage subscriptions as your store grows.</p><form onSubmit={createBusiness}><label>Business name<input required value={businessForm.name} onChange={e => setBusinessForm({...businessForm, name:e.target.value})} placeholder="e.g. Ade Stores"/></label><label>Business type<select value={businessForm.type} onChange={e => setBusinessForm({...businessForm, type:e.target.value})}><option>Supermarket</option><option>Provision store</option><option>Mini mart</option><option>Retail shop</option></select></label><button className="primary full" disabled={loading}>{loading ? 'Creating workspace…' : 'Create business account'}</button></form>{errorMessage && <div className="alert error">{errorMessage}</div>}</div></div>;
 
